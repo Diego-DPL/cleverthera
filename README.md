@@ -1,50 +1,58 @@
-# React + TypeScript + Vite
+# Transcripción Pacientes - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este es el frontend de la aplicación **Transcripción Pacientes**, que se encarga de transcribir conversaciones en tiempo real entre un paciente y un psicólogo. La aplicación está desarrollada con **React**, **Vite**, y **TypeScript**, y se espera desplegar en **Vercel**.
 
-Currently, two official plugins are available:
+## Estructura del Proyecto
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+transcripcion-pacientes-frontend/ ├── public/ ├── src/ │ ├── components/ │ ├── hooks/ │ ├── App.tsx │ └── index.tsx ├── .gitignore ├── package.json ├── tsconfig.json └── vite.config.ts
 
-## Expanding the ESLint configuration
+markdown
+Copiar código
+# Transcripción Pacientes - Frontend
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+Este es el frontend de la aplicación **Transcripción Pacientes**, que se encarga de transcribir conversaciones en tiempo real entre un paciente y un psicólogo. La aplicación está desarrollada con **React**, **Vite**, y **TypeScript**, y se espera desplegar en **Vercel**.
 
-- Configure the top-level `parserOptions` property like this:
+## Estructura del Proyecto
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+transcripcion-pacientes-frontend/ ├── public/ ├── src/ │ ├── components/ │ ├── hooks/ │ ├── App.tsx │ └── index.tsx ├── .gitignore ├── package.json ├── tsconfig.json └── vite.config.ts
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+markdown
+Copiar código
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+## Tecnologías Utilizadas
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+- **React**
+- **TypeScript**
+- **Vite**
+- **Tailwind CSS** (para el diseño)
+
+## Requisitos Previos
+
+Asegúrate de tener instalado **Node.js** (v14 o superior) en tu máquina.
+
+## Instalación
+
+1. Clona este repositorio:
+
+   ```bash
+   git clone https://github.com/your-username/transcripcion-pacientes-frontend.git
+
+2. Navega al directorio del proyecto:
+    cd transcripcion-pacientes-frontend
+   
+3. Instala las dependencias:
+
+## Scripts Disponibles
+
+- Desarrollo: Para iniciar la aplicación en modo de desarrollo:
+
+  npm run dev
+  La aplicación estará disponible en http://localhost:3000.
+
+- Construir: Para crear una versión de producción de la aplicación:
+  
+  npm run build
+  
+- Previsualizar: Para previsualizar la versión de producción localmente:
+
+  npm run preview
