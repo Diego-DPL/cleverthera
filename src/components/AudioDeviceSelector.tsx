@@ -24,12 +24,12 @@ const AudioDeviceSelector: React.FC<AudioDeviceSelectorProps> = ({
 
   return (
     <div className='flex justify-center items-center mb-4'>
-      <label htmlFor="audio-input">Selecciona un micrófono:</label>
+      <label className='text-gray-800' htmlFor="audio-input">Selecciona un micrófono: </label>
       <select
         id="audio-input"
         value={selectedDeviceId || ''}
         onChange={(e) => setSelectedDeviceId(e.target.value)}
-        className='block w-[25%] p-2 border border-gray-300 rounded-md'
+        className='block w-[50%] p-2 border border-gray-300 rounded-md'
       >
         {devices.map((device) => (
           <option key={device.deviceId} value={device.deviceId}>

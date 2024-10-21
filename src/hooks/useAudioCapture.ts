@@ -59,9 +59,9 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       const combinedStreamLocal = destination.stream;
       setCombinedStream(combinedStreamLocal);
 
+      console.log('llamada al websocket');
 //      socketRef.current = new WebSocket('ws://localhost:8000/ws/audio');
         socketRef.current = new WebSocket('wss://cleverthera-e0e22ef57185.herokuapp.com/ws/audio');
-
 
       socketRef.current.onopen = () => {
         console.log('Conectado al servidor de WebSocket');

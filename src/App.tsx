@@ -32,8 +32,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
-      <h1 className="text-3xl font-bold mb-8">Transcripción de Pacientes</h1>
+    <div className="min-h-screen w-screen bg-gray-100 flex flex-col items-center p-4">
+      <h1 className="text-3xl text-gray-800 font-bold mb-8">Transcripción de Pacientes</h1>
       <AudioDeviceSelector
         selectedDeviceId={selectedDeviceId}
         setSelectedDeviceId={setSelectedDeviceId}
@@ -41,19 +41,19 @@ const App: React.FC = () => {
       <StartButton isRecording={isRecording} onStartStop={handleStartStop} />
       {micStream && (
         <div>
-          <h3>Visualización del Micrófono</h3>
+          <h3 className='text-gray-800'>Visualización del Micrófono</h3>
           <AudioVisualizer stream={micStream} />
         </div>
       )}
       {systemStream && (
         <div>
-          <h3>Visualización del Audio del Sistema</h3>
+          <h3 className='text-gray-800'>Visualización del Audio del Sistema</h3>
           <AudioVisualizer stream={systemStream} />
         </div>
       )}
       {combinedStream && (
         <div>
-          <h3>Visualización del Audio Combinado</h3>
+          <h3 className='text-gray-800'>Visualización del Audio Combinado</h3>
           <AudioVisualizer stream={combinedStream} />
         </div>
       )}
