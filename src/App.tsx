@@ -1,64 +1,29 @@
-import React, { useState } from 'react';
-import StartButton from './components/StartButton';
-import TranscriptionPanel from './components/TranscriptionPanel';
-import AudioDeviceSelector from './components/AudioDeviceSelector';
-import AudioVisualizer from './components/AudioVisualizer';
-import useAudioCapture from './hooks/useAudioCapture';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Transcripcion from './pages/Transcripcion'; // Tu componente principal con la funcionalidad de transcripción
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Header from './components/Header';
 
-interface Transcription {
-  speaker?: string;
-  text: string;
-  timestamp: number;
-}
 
 
 const App: React.FC = () => {
-  const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
 
-  const { startCapture, stopCapture, micStream, systemStream, combinedStream} = useAudioCapture({
-    setTranscriptions,
-    selectedDeviceId,
-  });
-
-  const handleStartStop = () => {
-    if (isRecording) {
-      stopCapture();
-    } else {
-      startCapture();
-    }
-    setIsRecording(!isRecording);
-  };
 
   return (
-    <div className="min-h-screen w-screen bg-gray-100 flex flex-col items-center p-4">
-      <h1 className="text-3xl text-gray-800 font-bold mb-8">Transcripción de Pacientes</h1>
-      <AudioDeviceSelector
-        selectedDeviceId={selectedDeviceId}
-        setSelectedDeviceId={setSelectedDeviceId}
-      />
-      <StartButton isRecording={isRecording} onStartStop={handleStartStop} />
-      {micStream && (
-        <div>
-          <h3 className='text-gray-800'>Visualización del Micrófono</h3>
-          <AudioVisualizer stream={micStream} />
-        </div>
-      )}
-      {systemStream && (
-        <div>
-          <h3 className='text-gray-800'>Visualización del Audio del Sistema</h3>
-          <AudioVisualizer stream={systemStream} />
-        </div>
-      )}
-      {combinedStream && (
-        <div>
-          <h3 className='text-gray-800'>Visualización del Audio Combinado</h3>
-          <AudioVisualizer stream={combinedStream} />
-        </div>
-      )}
-      <TranscriptionPanel transcriptions={transcriptions} />
+  <>
+    <div>
+      <Router>
+      <Header />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<Transcripcion />} />
+        </Routes>
+      </Router>
     </div>
+
+  </>
   );
 };
 
