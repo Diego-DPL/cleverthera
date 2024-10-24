@@ -5,7 +5,10 @@ import { Label } from "../components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
+import { createClient } from '@supabase/supabase-js'
 
+
+const supabase = createClient(import.meta.env.VITE_APP_SUPABASE_URL, import.meta.env.VITE_APP_SUPABASE_ANON_KEY)
 
 const Login: React.FC = () => {
 
@@ -18,10 +21,20 @@ const Login: React.FC = () => {
       console.log('Inicio de sesión con:', email, password)
     }
   
-    const handleGoogleLogin = () => {
-      // Aquí iría la lógica para el inicio de sesión con Google
-      console.log('Inicio de sesión con Google')
-    }
+    const handleGoogleLogin = async () => {
+        const redirectTo = `${window.location.origin}/login`;  // Esto asegura que use la URL actual del entorno
+        console.log('Redirecting to:', redirectTo);  // Esto te permitirá verificar la URL en la consola
+
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo,  // Pasamos la URL dinámica basada en el entorno
+          }
+        });
+      
+        if (error) console.log('Error de inicio de sesión con Google:', error.message);
+      };
+      
   
     const handleFacebookLogin = () => {
       // Aquí iría la lógica para el inicio de sesión con Facebook
