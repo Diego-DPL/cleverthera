@@ -86,7 +86,7 @@ const Login: React.FC = () => {
               </div>
               <div className="flex justify-center">
                 <img
-                  alt="Beneficios de PsicoTranscribe"
+                  alt="Beneficios de CleverThera"
                   className="aspect-video rounded-xl object-cover object-center overflow-hidden"
                   height="310"
                   src="/placeholder.svg?height=310&width=550"
@@ -102,7 +102,7 @@ const Login: React.FC = () => {
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Lo que dicen nuestros usuarios</h2>
                 <p className="mx-auto max-w-[900px] text-muted-foreground text-lg sm:text-xl/relaxed">
-                  "PsicoTranscribe ha transformado mi práctica. Ahora puedo concentrarme completamente en mis pacientes,
+                  "CleverThera ha transformado mi práctica. Ahora puedo concentrarme completamente en mis pacientes,
                   sabiendo que cada detalle importante será capturado y analizado. Es como tener un asistente siempre presente."
                 </p>
               </div>
