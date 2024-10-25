@@ -37,7 +37,7 @@ const Login: React.FC = () => {
   };
 
   const handleGoogleSignup = async () => {
-    const redirectTo = `${window.location.origin}/register`;  // Redirige según la pestaña activa
+    const redirectTo = `${window.location.origin}/transcripcion`;  // Redirige según la pestaña activa
     console.log('Redirecting to:', redirectTo);
 
     const { error } = await supabase.auth.signInWithOAuth({
