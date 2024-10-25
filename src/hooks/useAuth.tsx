@@ -15,6 +15,7 @@ const useAuth = () => {
 
       // Listener para los cambios de autenticación
       const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Cambio de estado de autenticación:', event, session);
         setUser(session?.user ?? null);
         if (!session?.user) {
           navigate('/login');  // Redirigir si no hay un usuario autenticado
