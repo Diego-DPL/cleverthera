@@ -1,33 +1,33 @@
-// hooks/useAuth.tsx
-import { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient'; // Asegúrate de que tienes configurado tu cliente Supabase
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient'; // Asegúrate de tener el cliente de supabase configurado
 
 const useAuth = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(null); // Guardamos el estado del usuario
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Esta función debe ser asíncrona ya que estás llamando a métodos asíncronos
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession(); // Ahora es asíncrono
+    // Verificamos la sesión actual del usuario
+    const checkUserSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-
-      // Listener para los cambios de autenticación
-      const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Cambio de estado de autenticación:', event, session);
-        setUser(session?.user ?? null);
-        if (!session?.user) {
-          navigate('/login');  // Redirigir si no hay un usuario autenticado
-        }
-      });
-
-      return () => {
-        listener?.subscription.unsubscribe();
-      };
     };
 
-    checkSession();
+    checkUserSession();
+
+    // Escuchar cambios de estado de autenticación
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('event', event);
+      setUser(session?.user ?? null);
+      if (!session?.user) {
+        navigate('/login');  // Redirige a la página de login si no hay usuario
+      }
+    });
+
+    // Limpieza del listener al desmontar el componente
+    return () => {
+      subscription.subscription?.unsubscribe();
+    };
   }, [navigate]);
 
   return user;
