@@ -9,7 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute'; // Importamos el compo
 
 const App: React.FC = () => {
   return (
-    <>
+    <> 
       <div>
         <Router>
           <Header />
