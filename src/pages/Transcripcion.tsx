@@ -4,7 +4,7 @@ import TranscriptionPanel from '../components/TranscriptionPanel';
 import AudioDeviceSelector from '../components/AudioDeviceSelector';
 import AudioVisualizer from '../components/AudioVisualizer';
 import useAudioCapture from '../hooks/useAudioCapture';
-
+import useAuth from '../hooks/useAuth';
 
 
 
@@ -16,6 +16,12 @@ interface Transcription {
 
 
 const Transcripcion: React.FC = () => {
+
+    const user = useAuth();
+
+    if (!user) {
+        return <div>Loading...</div>;  // Muestra un mensaje de carga mientras se verifica la autenticación
+    }
 
     const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);

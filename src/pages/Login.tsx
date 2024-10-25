@@ -5,12 +5,8 @@ import { Label } from "../components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
-import { createClient } from '@supabase/supabase-js'
 
-console.log("Importamos claves de SUPABASE:")
-console.log(import.meta.env.VITE_APP_SUPABASE_URL)
-
-const supabase = createClient(import.meta.env.VITE_APP_SUPABASE_URL, import.meta.env.VITE_APP_SUPABASE_ANON_KEY)
+import { supabase } from '../supabaseClient' 
 
 const Login: React.FC = () => {
 
