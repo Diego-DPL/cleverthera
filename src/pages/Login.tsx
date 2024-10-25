@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
 import { createClient } from '@supabase/supabase-js'
 
+console.log("Importamos claves de SUPABASE:")
+console.log(import.meta.env.VITE_APP_SUPABASE_URL)
 
 const supabase = createClient(import.meta.env.VITE_APP_SUPABASE_URL, import.meta.env.VITE_APP_SUPABASE_ANON_KEY)
 
