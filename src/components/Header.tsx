@@ -32,13 +32,13 @@ const Header: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Link to="/transcripcion" className="text-sm font-medium hover:text-primary">
+                    <Link to="/" className="text-sm font-medium hover:text-primary">
                       Características
                     </Link>
-                    <Link to="/transcripcion" className="text-sm font-medium hover:text-primary">
+                    <Link to="/" className="text-sm font-medium hover:text-primary">
                       Precios
                     </Link>
-                    <Link to="/transcripcion" className="text-sm font-medium hover:text-primary">
+                    <Link to="/" className="text-sm font-medium hover:text-primary">
                       Contacto
                     </Link>
                     <Link to="/login" className="text-sm font-medium hover:text-primary">
