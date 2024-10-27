@@ -6,41 +6,40 @@ import AudioVisualizer from '../components/AudioVisualizer';
 import useAudioCapture from '../hooks/useAudioCapture';
 import useAuth from '../hooks/useAuth';
 
-
-
 interface Transcription {
-    speaker?: string;
-    text: string;
-    timestamp: number;
+  speaker?: string;
+  text: string;
+  timestamp: number;
 }
 
-
 const Transcripcion: React.FC = () => {
+  // ** Cambia esto para verificar el usuario antes del renderizado principal **
+  const user = useAuth();
+  console.log('Transcipcion-> user ', user);
+  
+  // Si el usuario aún no se ha definido, mostramos un mensaje de carga.
+  if (user === undefined) {
+    return <div>Loading...</div>;
+  }
 
-    const user = useAuth();
-    console.log('Transcipcion-> user ', user);
-    
-    if (!user) {
-        return <div>Loading...</div>;  // Muestra un mensaje de carga mientras se verifica la autenticación
+  // Estado y hooks restantes que usan el renderizado incondicionalmente
+  const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+
+  const { startCapture, stopCapture, micStream, systemStream, combinedStream } = useAudioCapture({
+    setTranscriptions,
+    selectedDeviceId,
+  });
+
+  const handleStartStop = () => {
+    if (isRecording) {
+      stopCapture();
+    } else {
+      startCapture();
     }
-
-    const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
-    const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-    const [isRecording, setIsRecording] = useState(false);
-
-    const { startCapture, stopCapture, micStream, systemStream, combinedStream} = useAudioCapture({
-        setTranscriptions,
-        selectedDeviceId,
-    });
-
-    const handleStartStop = () => {
-        if (isRecording) {
-        stopCapture();
-        } else {
-        startCapture();
-        }
-        setIsRecording(!isRecording);
-    };
+    setIsRecording(!isRecording);
+  };
 
   return (
     <div className="min-h-screen w-screen bg-gray-100 flex flex-col items-center p-4">
@@ -52,19 +51,19 @@ const Transcripcion: React.FC = () => {
       <StartButton isRecording={isRecording} onStartStop={handleStartStop} />
       {micStream && (
         <div>
-          <h3 className='text-gray-800'>Visualización del Micrófono</h3>
+          <h3 className="text-gray-800">Visualización del Micrófono</h3>
           <AudioVisualizer stream={micStream} />
         </div>
       )}
       {systemStream && (
         <div>
-          <h3 className='text-gray-800'>Visualización del Audio del Sistema</h3>
+          <h3 className="text-gray-800">Visualización del Audio del Sistema</h3>
           <AudioVisualizer stream={systemStream} />
         </div>
       )}
       {combinedStream && (
         <div>
-          <h3 className='text-gray-800'>Visualización del Audio Combinado</h3>
+          <h3 className="text-gray-800">Visualización del Audio Combinado</h3>
           <AudioVisualizer stream={combinedStream} />
         </div>
       )}
