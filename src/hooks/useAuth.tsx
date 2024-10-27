@@ -11,6 +11,8 @@ const useAuth = () => {
     const checkUserSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
+      console.log('session', session);
+      console.log('user', session?.user);
     };
 
     checkUserSession();
@@ -18,6 +20,7 @@ const useAuth = () => {
     // Escuchar cambios de estado de autenticación
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('event', event);
+      console.log('session', session);
       setUser(session?.user ?? null);
       if (!session?.user) {
         navigate('/login');  // Redirige a la página de login si no hay usuario
