@@ -18,7 +18,7 @@ interface Transcription {
 const Transcripcion: React.FC = () => {
 
     const user = useAuth();
-    console.log(user);
+    console.log('Transcipcion-> user ', user);
     
     if (!user) {
         return <div>Loading...</div>;  // Muestra un mensaje de carga mientras se verifica la autenticación

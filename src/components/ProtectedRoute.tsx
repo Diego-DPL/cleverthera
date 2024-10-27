@@ -10,8 +10,16 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const user = useAuth();
 
+  console.log('ProtectedRoute-> user ', user);
+
+  if (user === undefined) {
+    // Muestra un indicador de carga mientras se verifica la sesión
+    return <div>Loading...</div>;
+  }
+
   if (!user) {
     // Si el usuario no está autenticado, redirigimos a la página de login
+    console.log('ProtectedRoute-> Navigate to /login'); 
     return <Navigate to="/login" replace />;
   }
 

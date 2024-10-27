@@ -1,25 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Mic } from "lucide-react";
-import { supabase } from '../supabaseClient'; // Cliente de Supabase
-import useAuth from '../hooks/useAuth'; // Hook de autenticación
+import useAuth from '../hooks/useAuth';
+import { supabase } from '../supabaseClient';
 
 const Header: React.FC = () => {
-  const navigate = useNavigate();
-  const user = useAuth(); // Obtenemos el usuario autenticado
-
-  // Estado local para manejar la visibilidad de los links de acuerdo al estado del usuario
-  const [isAuthenticated, setIsAuthenticated] = useState(!!user);
-
-  useEffect(() => {
-    setIsAuthenticated(!!user);
-  }, [user]);
+  const user = useAuth();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setIsAuthenticated(false);
-    navigate('/');
   };
+
+  if (user === undefined) {
+    return null; // Evita renderizar el Header hasta que sepamos si el usuario está autenticado
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -29,7 +23,7 @@ const Header: React.FC = () => {
           <span className="text-2xl font-bold text-primary">CleverThera</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
-          {isAuthenticated ? (
+          {user ? (
             <>
               <Link to="/transcripcion" className="text-sm font-medium hover:text-primary">
                 Transcripción
