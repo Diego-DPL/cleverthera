@@ -1,3 +1,4 @@
+// Transcripcion.tsx
 import React, { useState } from 'react';
 import StartButton from '../components/StartButton';
 import TranscriptionPanel from '../components/TranscriptionPanel';
@@ -13,16 +14,17 @@ interface Transcription {
 }
 
 const Transcripcion: React.FC = () => {
-  // ** Cambia esto para verificar el usuario antes del renderizado principal **
   const user = useAuth();
-  console.log('Transcipcion-> user ', user);
   
-  // Si el usuario aún no se ha definido, mostramos un mensaje de carga.
-  if (user === undefined) {
-    return <div>Loading...</div>;
+  // Si el usuario es `undefined`, muestra un mensaje de carga o redirecciona
+  if (user === null) {
+      return <div>Cargando...</div>;
   }
 
-  // Estado y hooks restantes que usan el renderizado incondicionalmente
+  // if (!user) {
+  //     return <div>No tienes permisos para acceder a esta página.</div>;
+  // }
+
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);

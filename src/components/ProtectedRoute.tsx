@@ -1,4 +1,4 @@
-// src/components/ProtectedRoute.tsx
+// ProtectedRoute.tsx
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
@@ -10,20 +10,16 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const user = useAuth();
 
-  console.log('ProtectedRoute-> user ', user);
-
   if (user === undefined) {
-    // Muestra un indicador de carga mientras se verifica la sesión
-    return <div>Loading...</div>;
+    // Si `user` es `undefined`, muestra una pantalla de carga
+    return <div>Cargando...</div>;
   }
 
   if (!user) {
-    // Si el usuario no está autenticado, redirigimos a la página de login
-    console.log('ProtectedRoute-> Navigate to /login'); 
+    // Si el usuario es `null`, redirige a `/login`
     return <Navigate to="/login" replace />;
   }
 
-  // Si el usuario está autenticado, renderizamos el contenido de la ruta protegida
   return <>{children}</>;
 };
 

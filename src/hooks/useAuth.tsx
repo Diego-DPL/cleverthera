@@ -1,33 +1,32 @@
+// useAuth.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient'; // Asegúrate de tener el cliente de supabase configurado
+import { supabase } from '../supabaseClient';
 
 const useAuth = () => {
-  const [user, setUser] = useState<any>(undefined); // Cambiamos null por undefined para diferenciar la carga inicial
+  const [user, setUser] = useState<any>(undefined); // `undefined` como estado inicial
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Verificamos la sesión actual del usuario
     const checkUserSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-      console.log('useAuth 1 session', session);
-      console.log('useAuth 1 user', session?.user);
+      console.log('User session detected:', session);
     };
 
     checkUserSession();
 
-    // Escuchar cambios de estado de autenticación
+    // Escucha eventos de autenticación para actualizaciones de estado
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('useAuth 2 event', event);
-      console.log('useAuth 2 session', session);
+      console.log('Auth event:', event);
       setUser(session?.user ?? null);
+
       if (event === 'SIGNED_OUT') {
-        navigate('/login');  // Redirige a la página de login si el usuario ha cerrado sesión
+        navigate('/login');
       }
     });
 
-    // Limpieza del listener al desmontar el componente
+    // Limpia la suscripción al desmontar
     return () => {
       subscription.subscription?.unsubscribe();
     };

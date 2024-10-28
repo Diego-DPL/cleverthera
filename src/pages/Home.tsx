@@ -17,7 +17,7 @@ const Login: React.FC = () => {
                   Revoluciona tus sesiones de terapia
                 </h1>
                 <p className="mx-auto max-w-[700px] text-lg sm:text-xl/relaxed">
-                  Transcripción en tiempo real, resúmenes automáticos y asistencia en diagnóstico para psicólogos.
+                  Transcripción en tiempo real, resúmenes automáticos y orientacion diagnóstica para psicólogos.
                 </p>
               </div>
               <div className="space-x-4">
@@ -56,7 +56,7 @@ const Login: React.FC = () => {
               <Card className="bg-card text-card-foreground">
                 <CardHeader>
                   <Brain className="w-12 h-12 text-primary mb-4" />
-                  <CardTitle className="text-2xl">Asistencia en diagnóstico</CardTitle>
+                  <CardTitle className="text-2xl">Orientación diagnóstica</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">Utiliza IA avanzada para sugerir posibles diagnósticos basados en el contenido de la sesión.</p>
@@ -72,10 +72,10 @@ const Login: React.FC = () => {
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Beneficios para tu práctica</h2>
                 <ul className="grid gap-4">
                   {[
-                    "Ahorra tiempo en la toma de notas y transcripción",
+                    "No pierdas el tiempo tomando notas y centrate en lo importante, tu paciente.",
+                    "Optimiza el tiempo de las sesiones.",
                     "Mejora la precisión de tus registros",
-                    "Obtén insights valiosos con el análisis de IA",
-                    "Aumenta la eficiencia de tus sesiones"
+                    "Obtén observaciones valiosas con el análisis de IA"
                   ].map((benefit, index) => (
                     <li key={index} className="flex items-center gap-2">
                       <CheckCircle className="text-primary flex-shrink-0" />
@@ -102,7 +102,7 @@ const Login: React.FC = () => {
               <div className="space-y-2">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Lo que dicen nuestros usuarios</h2>
                 <p className="mx-auto max-w-[900px] text-muted-foreground text-lg sm:text-xl/relaxed">
-                  "CleverThera ha transformado mi práctica. Ahora puedo concentrarme completamente en mis pacientes,
+                  "CleverThera ha transformado mi práctica clínica. Ahora puedo concentrarme completamente en mis pacientes,
                   sabiendo que cada detalle importante será capturado y analizado. Es como tener un asistente siempre presente."
                 </p>
               </div>
@@ -119,7 +119,7 @@ const Login: React.FC = () => {
                   width="40"
                 />
                 <div className="text-left">
-                  <p className="text-sm font-medium">Dra. María Rodríguez</p>
+                  <p className="text-sm font-medium">Violeta Ovejero</p>
                   <p className="text-sm text-muted-foreground">Psicóloga Clínica</p>
                 </div>
               </div>
