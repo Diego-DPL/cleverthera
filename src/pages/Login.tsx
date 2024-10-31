@@ -1,63 +1,95 @@
-import React, { useState } from 'react';
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { FaGoogle, FaFacebook } from 'react-icons/fa'
-import { supabase } from '../supabaseClient' 
+// src/pages/Login.tsx
+import React, { useState, useEffect } from 'react';
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { FaGoogle, FaFacebook } from 'react-icons/fa';
+import { supabase } from '../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [tab, setTab] = useState('login');  // Nueva variable de estado para controlar la pestaña seleccionada
+  const [tab, setTab] = useState('login');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleEmailLogin = (e: React.FormEvent) => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setError(null);
+    setPassword('');
+    setConfirmPassword('');
+  }, [tab]);
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Inicio de sesión con:', email, password);
-    // Lógica de inicio de sesión con correo y contraseña
+    setError(null);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      navigate('/transcripcion');
+    }
   };
 
-  const handleEmailSignup = (e: React.FormEvent) => {
+  const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Registro con:', email, password);
-    // Lógica de registro con correo y contraseña
+    setError(null);
+
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      alert('Registro exitoso. Por favor, verifica tu correo electrónico para confirmar tu cuenta.');
+      navigate('/login');
+    }
   };
 
   const handleGoogleLogin = async () => {
-    const redirectTo = `${window.location.origin}/transcripcion`;  // Redirige según la pestaña activa
-    console.log('Redirecting to:', redirectTo);
+    const redirectTo = `${window.location.origin}/transcripcion`;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },
     });
 
-    if (error) console.log('Error de inicio de sesión con Google:', error.message);
+    if (error) {
+      setError(error.message);
+    }
   };
 
   const handleGoogleSignup = async () => {
-    const redirectTo = `${window.location.origin}/transcripcion`;  // Redirige según la pestaña activa
-    console.log('Redirecting to:', redirectTo);
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    });
-
-    if (error) console.log('Error de registro con Google:', error.message);
+    await handleGoogleLogin();
   };
 
   const handleFacebookLogin = async () => {
-    const redirectTo = `${window.location.origin}/${tab}`;
-    console.log('Redirecting to:', redirectTo);
+    const redirectTo = `${window.location.origin}/transcripcion`;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: { redirectTo },
     });
 
-    if (error) console.log('Error de autenticación con Facebook:', error.message);
+    if (error) {
+      setError(error.message);
+    }
   };
 
   return (
@@ -68,7 +100,8 @@ const Login: React.FC = () => {
           <CardDescription>Inicia sesión o crea una cuenta</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" className="w-full" onValueChange={setTab}>  {/* Actualizamos la pestaña activa */}
+          {error && <p className="text-red-500 mb-4">{error}</p>}
+          <Tabs defaultValue="login" className="w-full" onValueChange={setTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
               <TabsTrigger value="register">Registrarse</TabsTrigger>
@@ -100,7 +133,6 @@ const Login: React.FC = () => {
                 </div>
                 <Button className="w-full mt-4" type="submit">Iniciar Sesión</Button>
               </form>
-              {/* Mover contenido del CardFooter aquí */}
               <div className="relative w-full my-4">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
@@ -120,7 +152,7 @@ const Login: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="register">
-              <form onSubmit={handleEmailSignup}>  {/* Usamos handleEmailSignup aquí */}
+              <form onSubmit={handleEmailSignup}>
                 <div className="grid w-full items-center gap-4">
                   <div className="flex flex-col space-y-1.5">
                     <Label htmlFor="register-email">Correo electrónico</Label>
@@ -149,12 +181,13 @@ const Login: React.FC = () => {
                       id="confirm-password" 
                       type="password"
                       required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                     />
                   </div>
                 </div>
                 <Button className="w-full mt-4" type="submit">Registrarse</Button>
               </form>
-              {/* Mover contenido del CardFooter aquí */}
               <div className="relative w-full my-4">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
