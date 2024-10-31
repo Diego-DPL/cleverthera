@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { FaGoogle, FaFacebook } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import Modal from '../components/ui/Modal'; // Importa el nuevo componente Modal
+
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +17,7 @@ const Login: React.FC = () => {
   const [tab, setTab] = useState('login');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -80,16 +83,7 @@ const Login: React.FC = () => {
   };
 
   const handleFacebookLogin = async () => {
-    const redirectTo = `${window.location.origin}/transcripcion`;
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: { redirectTo },
-    });
-
-    if (error) {
-      setError(error.message);
-    }
+    setIsModalOpen(true);
   };
 
   return (
@@ -208,6 +202,15 @@ const Login: React.FC = () => {
           </Tabs>
         </CardContent>
       </Card>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Funcionalidad no disponible"
+      >
+        <p>
+          La opción de iniciar sesión con Facebook no está disponible actualmente. Por favor, utiliza otra opción para iniciar sesión.
+        </p>
+      </Modal>
     </div>
   );
 };
