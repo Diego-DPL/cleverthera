@@ -207,7 +207,7 @@ const Login: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         title="Funcionalidad no disponible"
       >
-        <p>
+        <p className='text-muted-foreground'>
           La opción de iniciar sesión con Facebook no está disponible actualmente. Por favor, utiliza otra opción para iniciar sesión.
         </p>
       </Modal>
