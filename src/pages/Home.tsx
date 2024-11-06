@@ -1,5 +1,5 @@
 import { Button } from "../components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card"
 import { Mic, FileText, Brain, CheckCircle } from "lucide-react"
 
 const Login: React.FC = () => {
@@ -180,9 +180,9 @@ const Login: React.FC = () => {
                       ))}
                     </ul>
                   </CardContent>
-                  {/* <CardFooter>
+                  <CardFooter>
                     <Button className="w-full">{plan.title === "Empresarial" ? "Contactar ventas" : "Empezar ahora"}</Button>
-                  </CardFooter> */}
+                  </CardFooter>
                 </Card>
               ))}
             </div>
