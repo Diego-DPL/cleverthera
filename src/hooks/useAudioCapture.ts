@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { supabase } from '../supabaseClient';
 
 interface Transcription {
   speaker?: string;
@@ -59,15 +60,25 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       const combinedStreamLocal = destination.stream;
       setCombinedStream(combinedStreamLocal);
 
+      // Obtener el token de acceso de la sesión actual
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+    
+      if (!accessToken) {
+        alert('No estás autenticado');
+        return;
+      }
+
       console.log('llamada al websocket');
 //      socketRef.current = new WebSocket('ws://localhost:8000/ws/audio');
         socketRef.current = new WebSocket('wss://cleverthera-e0e22ef57185.herokuapp.com/ws/audio');
 
       socketRef.current.onopen = () => {
-        console.log('Conectado al servidor de WebSocket');
+        console.log('Conexión WebSocket establecida');
       };
 
       socketRef.current.onmessage = (event) => {
+        console.log('Mensaje recibido del WebSocket:', event.data);
         const data = JSON.parse(event.data);
         const { speaker, text, timestamp } = data;
       
@@ -84,8 +95,15 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
           return newTranscriptions;
         });
       };
-      
 
+      socketRef.current.onerror = (error) => {
+        console.error('Error en el WebSocket:', error);
+      };
+
+      socketRef.current.onclose = (event) => {
+        console.log('Conexión WebSocket cerrada:', event);
+      };
+      
       mediaRecorderRef.current = new MediaRecorder(combinedStreamLocal, {
         mimeType: 'audio/webm; codecs=opus',
         audioBitsPerSecond: 128000, // Asegurar buena calidad
