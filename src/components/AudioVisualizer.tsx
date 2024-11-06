@@ -2,16 +2,18 @@ import React, { useRef, useEffect } from 'react';
 
 interface AudioVisualizerProps {
   stream: MediaStream;
+  color?: string;
 }
 
-const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream }) => {
+const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream, color = '#3b82f6' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
 
   useEffect(() => {
-    const audioContext = new AudioContext();
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const source = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
     source.connect(analyser);
 
     const bufferLength = analyser.frequencyBinCount;
@@ -22,34 +24,26 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream }) => {
 
     const draw = () => {
       animationRef.current = requestAnimationFrame(draw);
-      analyser.getByteTimeDomainData(dataArray);
+      analyser.getByteFrequencyData(dataArray);
 
       if (canvasCtx && canvas) {
-        canvasCtx.fillStyle = 'rgb(200, 200, 200)';
-        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+        canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+        canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-        canvasCtx.lineWidth = 2;
-        canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
-        canvasCtx.beginPath();
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const sliceWidth = (canvas.width * 1.0) / bufferLength;
+        const barWidth = (canvas.width / bufferLength) * 2.5;
         let x = 0;
 
         for (let i = 0; i < bufferLength; i++) {
-          const v = dataArray[i] / 128.0;
-          const y = (v * canvas.height) / 2;
+          const barHeight = (dataArray[i] / 255) * canvas.height;
 
-          if (i === 0) {
-            canvasCtx.moveTo(x, y);
-          } else {
-            canvasCtx.lineTo(x, y);
-          }
+          canvasCtx.fillStyle = color;
+          canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
 
-          x += sliceWidth;
+          x += barWidth + 1;
         }
-
-        canvasCtx.lineTo(canvas.width, canvas.height / 2);
-        canvasCtx.stroke();
       }
     };
 
@@ -61,9 +55,13 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream }) => {
       source.disconnect();
       audioContext.close();
     };
-  }, [stream]);
+  }, [stream, color]);
 
-  return <canvas ref={canvasRef} width={300} height={100} />;
+  return (
+    <div className="w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
+      <canvas ref={canvasRef} className="w-full h-full" />
+    </div>
+  );
 };
 
 export default AudioVisualizer;
