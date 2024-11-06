@@ -45,7 +45,7 @@ export default function TranscripcionPage() {
   }
 
   return (
-    <div className="container w-full mx-auto space-y-4">
+    <div className="flex flex-col w-screen min-h-screen bg-background text-foreground">
       <h1 className="text-3xl font-bold text-center mb-8">Transcripción de Pacientes</h1>
       
       <Card>
