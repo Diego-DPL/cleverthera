@@ -1,47 +1,59 @@
-import React, { useState } from 'react'
-import { Button } from "../components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { Mic, StopCircle } from 'lucide-react'
-import useAudioCapture from '../hooks/useAudioCapture'
-import useAuth from '../hooks/useAuth'
+import React, { useState } from 'react';
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Mic, StopCircle } from 'lucide-react';
+import useAudioCapture from '../hooks/useAudioCapture';
+import useAuth from '../hooks/useAuth';
 import AudioVisualizer from '../components/AudioVisualizer';
 
 interface Transcription {
-  speaker?: string
-  text: string
-  timestamp: number
+  speaker?: string;
+  text: string;
+  timestamp: number;
 }
 
 export default function TranscripcionPage() {
-  const user = useAuth()
-  const [transcriptions, setTranscriptions] = useState<Transcription[]>([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
-  const [isRecording, setIsRecording] = useState(false)
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
+  const user = useAuth();
+  const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
 
   const { startCapture, stopCapture, micStream, systemStream, combinedStream } = useAudioCapture({
     setTranscriptions,
     selectedDeviceId,
-  })
+  });
 
   React.useEffect(() => {
-    navigator.mediaDevices.enumerateDevices().then(devices => {
-      setAudioDevices(devices.filter(device => device.kind === 'audioinput'))
-    })
-  }, [])
+    const getAudioDevices = async () => {
+      try {
+        // Solicitar permiso para acceder al micrófono
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(
+          (device) => device.kind === 'audioinput' && device.deviceId && device.deviceId !== ''
+        );
+        console.log('Dispositivos de audio:', audioInputs);
+        setAudioDevices(audioInputs);
+      } catch (error) {
+        console.error('Error al obtener dispositivos de audio:', error);
+      }
+    };
+    getAudioDevices();
+  }, []);
 
   const handleStartStop = () => {
     if (isRecording) {
-      stopCapture()
+      stopCapture();
     } else {
-      startCapture()
+      startCapture();
     }
-    setIsRecording(!isRecording)
-  }
+    setIsRecording(!isRecording);
+  };
 
   if (user === null) {
-    return <div className="flex items-center justify-center h-screen">Cargando...</div>
+    return <div className="flex items-center justify-center h-screen">Cargando...</div>;
   }
 
   return (
@@ -53,16 +65,25 @@ export default function TranscripcionPage() {
           <CardTitle>Configuración de Audio</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Select onValueChange={(value) => setSelectedDeviceId(value)}>
+          <Select
+            value={selectedDeviceId || ''}
+            onValueChange={(value) => setSelectedDeviceId(value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar dispositivo de entrada" />
             </SelectTrigger>
             <SelectContent>
-              {audioDevices.map((device) => (
-                <SelectItem key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Micrófono ${device.deviceId.slice(0, 5)}`}
+              {audioDevices.length > 0 ? (
+                audioDevices.map((device) => (
+                  <SelectItem key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Micrófono ${device.deviceId.slice(0, 5)}`}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>
+                  No se encontraron dispositivos de audio
                 </SelectItem>
-              ))}
+              )}
             </SelectContent>
           </Select>
 
@@ -130,5 +151,5 @@ export default function TranscripcionPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
