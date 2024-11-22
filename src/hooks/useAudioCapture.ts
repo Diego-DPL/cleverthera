@@ -7,7 +7,6 @@ interface Transcription {
   timestamp: number;
 }
 
-
 interface UseAudioCaptureProps {
   setTranscriptions: React.Dispatch<React.SetStateAction<Transcription[]>>;
   selectedDeviceId: string | null;
@@ -35,43 +34,32 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       });
       setSystemStream(systemStreamLocal);
 
-      // Crear un AudioContext
       const audioContext = new AudioContext();
 
       const micSource = audioContext.createMediaStreamSource(micStreamLocal);
       const systemSource = audioContext.createMediaStreamSource(systemStreamLocal);
 
-      // Crear un ChannelMergerNode con 2 entradas (canales)
       const channelMerger = audioContext.createChannelMerger(2);
 
-      // Conectar el micrófono al canal izquierdo (input 0)
-      micSource.connect(channelMerger, 0, 0);
+      micSource.connect(channelMerger, 0, 0); // Canal izquierdo
+      systemSource.connect(channelMerger, 0, 1); // Canal derecho
 
-      // Conectar el audio del sistema al canal derecho (input 0 de systemSource a input 1 del channelMerger)
-      systemSource.connect(channelMerger, 0, 1);
-
-      // Crear un nodo de destino (MediaStreamDestination)
       const destination = audioContext.createMediaStreamDestination();
-
-      // Conectar el channelMerger al destino
       channelMerger.connect(destination);
 
-      // El flujo combinado se obtiene del destino
       const combinedStreamLocal = destination.stream;
       setCombinedStream(combinedStreamLocal);
 
-      // Obtener el token de acceso de la sesión actual
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
-    
+
       if (!accessToken) {
         alert('No estás autenticado');
         return;
       }
 
-      console.log('llamada al websocket');
-//      socketRef.current = new WebSocket('ws://localhost:8000/ws/audio');
-        socketRef.current = new WebSocket('wss://cleverthera-e0e22ef57185.herokuapp.com/ws/audio');
+      console.log('Conectando al WebSocket');
+      socketRef.current = new WebSocket('wss://cleverthera-e0e22ef57185.herokuapp.com/ws/audio');
 
       socketRef.current.onopen = () => {
         console.log('Conexión WebSocket establecida');
@@ -81,17 +69,14 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
         console.log('Mensaje recibido del WebSocket:', event.data);
         const data = JSON.parse(event.data);
         const { speaker, text, timestamp } = data;
-      
-        // Actualizar el estado de transcripciones con la marca de tiempo
+
         setTranscriptions((prevTranscriptions) => {
           const newTranscriptions = [
             ...prevTranscriptions,
             { speaker, text, timestamp },
           ];
-      
-          // Ordenar las transcripciones por marca de tiempo
+
           newTranscriptions.sort((a, b) => a.timestamp - b.timestamp);
-      
           return newTranscriptions;
         });
       };
@@ -103,15 +88,22 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       socketRef.current.onclose = (event) => {
         console.log('Conexión WebSocket cerrada:', event);
       };
-      
+
       mediaRecorderRef.current = new MediaRecorder(combinedStreamLocal, {
         mimeType: 'audio/webm; codecs=opus',
-        audioBitsPerSecond: 128000, // Asegurar buena calidad
+        audioBitsPerSecond: 128000,
       });
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
+      mediaRecorderRef.current.ondataavailable = async (event) => {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          socketRef.current.send(event.data);
+          const arrayBuffer = await event.data.arrayBuffer();
+
+          const audioContext = new AudioContext();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+          const pcm16 = await convertToPCM16(audioBuffer);
+
+          socketRef.current.send(pcm16);
         }
       };
 
@@ -136,6 +128,34 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
     setMicStream(null);
     setSystemStream(null);
     setCombinedStream(null);
+  };
+
+  const convertToPCM16 = async (audioBuffer: AudioBuffer): Promise<ArrayBuffer> => {
+    const sampleRate = 16000; // Requerido por la API
+    const offlineAudioContext = new OfflineAudioContext(
+      1, // Mono
+      audioBuffer.duration * sampleRate,
+      sampleRate
+    );
+
+    const channelData = audioBuffer.getChannelData(0);
+    const buffer = offlineAudioContext.createBuffer(1, channelData.length, sampleRate);
+    buffer.copyToChannel(channelData, 0);
+
+    const source = offlineAudioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(offlineAudioContext.destination);
+    source.start(0);
+
+    const renderedBuffer = await offlineAudioContext.startRendering();
+    const samples = renderedBuffer.getChannelData(0);
+
+    const pcm16 = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      pcm16[i] = Math.max(-1, Math.min(1, samples[i])) * 0x7fff;
+    }
+
+    return pcm16.buffer;
   };
 
   return { startCapture, stopCapture, micStream, systemStream, combinedStream };
