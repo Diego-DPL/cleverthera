@@ -15,6 +15,7 @@ interface UseAudioCaptureProps {
 const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptureProps) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const [systemStream, setSystemStream] = useState<MediaStream | null>(null);
   const [combinedStream, setCombinedStream] = useState<MediaStream | null>(null);
@@ -35,6 +36,7 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       setSystemStream(systemStreamLocal);
 
       const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
 
       const micSource = audioContext.createMediaStreamSource(micStreamLocal);
       const systemSource = audioContext.createMediaStreamSource(systemStreamLocal);
@@ -97,8 +99,6 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       mediaRecorderRef.current.ondataavailable = async (event) => {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
           const arrayBuffer = await event.data.arrayBuffer();
-
-          const audioContext = new AudioContext();
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
           const pcm16 = await convertToPCM16(audioBuffer);
@@ -125,6 +125,7 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
 
     micStream?.getTracks().forEach((track) => track.stop());
     systemStream?.getTracks().forEach((track) => track.stop());
+    audioContextRef.current?.close();
     setMicStream(null);
     setSystemStream(null);
     setCombinedStream(null);
@@ -138,12 +139,8 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       sampleRate
     );
 
-    const channelData = audioBuffer.getChannelData(0);
-    const buffer = offlineAudioContext.createBuffer(1, channelData.length, sampleRate);
-    buffer.copyToChannel(channelData, 0);
-
     const source = offlineAudioContext.createBufferSource();
-    source.buffer = buffer;
+    source.buffer = audioBuffer;
     source.connect(offlineAudioContext.destination);
     source.start(0);
 
