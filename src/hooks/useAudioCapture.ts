@@ -16,7 +16,6 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
-  const [systemStream, setSystemStream] = useState<MediaStream | null>(null);
   const [combinedStream, setCombinedStream] = useState<MediaStream | null>(null);
 
   const startCapture = async () => {
@@ -145,7 +144,7 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
     }
   };
 
-  return { startCapture, stopCapture, micStream, systemStream, combinedStream };
+  return { startCapture, stopCapture, micStream, combinedStream };
 };
 
 export default useAudioCapture;
