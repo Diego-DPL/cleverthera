@@ -98,14 +98,11 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
 
       mediaRecorderRef.current.ondataavailable = async (event) => {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          const arrayBuffer = await event.data.arrayBuffer();
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-          const pcm16 = await convertToPCM16(audioBuffer);
-
-          socketRef.current.send(pcm16);
+          // Envía directamente el blob del audio al backend
+          socketRef.current.send(event.data);
         }
       };
+      
 
       mediaRecorderRef.current.start(1000);
     } catch (error: any) {
