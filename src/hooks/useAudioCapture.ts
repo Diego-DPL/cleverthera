@@ -15,7 +15,6 @@ interface UseAudioCaptureProps {
 const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptureProps) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const [systemStream, setSystemStream] = useState<MediaStream | null>(null);
   const [combinedStream, setCombinedStream] = useState<MediaStream | null>(null);
@@ -29,25 +28,11 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       const micStreamLocal = await navigator.mediaDevices.getUserMedia(audioConstraints);
       setMicStream(micStreamLocal);
 
-      const systemStreamLocal = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
-      setSystemStream(systemStreamLocal);
-
       const audioContext = new AudioContext();
-      audioContextRef.current = audioContext;
-
       const micSource = audioContext.createMediaStreamSource(micStreamLocal);
-      const systemSource = audioContext.createMediaStreamSource(systemStreamLocal);
-
-      const channelMerger = audioContext.createChannelMerger(2);
-
-      micSource.connect(channelMerger, 0, 0); // Canal izquierdo
-      systemSource.connect(channelMerger, 0, 1); // Canal derecho
-
       const destination = audioContext.createMediaStreamDestination();
-      channelMerger.connect(destination);
+
+      micSource.connect(destination);
 
       const combinedStreamLocal = destination.stream;
       setCombinedStream(combinedStreamLocal);
@@ -93,16 +78,20 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
 
       mediaRecorderRef.current = new MediaRecorder(combinedStreamLocal, {
         mimeType: 'audio/webm; codecs=opus',
-        audioBitsPerSecond: 128000,
       });
 
       mediaRecorderRef.current.ondataavailable = async (event) => {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          // Envía directamente el blob del audio al backend
-          socketRef.current.send(event.data);
+          const arrayBuffer = await event.data.arrayBuffer();
+
+          // Convert audio to PCM16
+          const pcm16 = await convertToPCM16(arrayBuffer);
+
+          if (pcm16) {
+            socketRef.current.send(pcm16);
+          }
         }
       };
-      
 
       mediaRecorderRef.current.start(1000);
     } catch (error: any) {
@@ -121,35 +110,39 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
     }
 
     micStream?.getTracks().forEach((track) => track.stop());
-    systemStream?.getTracks().forEach((track) => track.stop());
-    audioContextRef.current?.close();
     setMicStream(null);
-    setSystemStream(null);
     setCombinedStream(null);
   };
 
-  const convertToPCM16 = async (audioBuffer: AudioBuffer): Promise<ArrayBuffer> => {
-    const sampleRate = 16000; // Requerido por la API
-    const offlineAudioContext = new OfflineAudioContext(
-      1, // Mono
-      audioBuffer.duration * sampleRate,
-      sampleRate
-    );
+  const convertToPCM16 = async (arrayBuffer: ArrayBuffer): Promise<ArrayBuffer | null> => {
+    try {
+      const audioContext = new AudioContext();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-    const source = offlineAudioContext.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(offlineAudioContext.destination);
-    source.start(0);
+      const offlineAudioContext = new OfflineAudioContext(
+        1, // Mono
+        audioBuffer.duration * 16000,
+        16000 // Sample rate required for the API
+      );
 
-    const renderedBuffer = await offlineAudioContext.startRendering();
-    const samples = renderedBuffer.getChannelData(0);
+      const source = offlineAudioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(offlineAudioContext.destination);
+      source.start(0);
 
-    const pcm16 = new Int16Array(samples.length);
-    for (let i = 0; i < samples.length; i++) {
-      pcm16[i] = Math.max(-1, Math.min(1, samples[i])) * 0x7fff;
+      const renderedBuffer = await offlineAudioContext.startRendering();
+      const samples = renderedBuffer.getChannelData(0);
+
+      const pcm16 = new Int16Array(samples.length);
+      for (let i = 0; i < samples.length; i++) {
+        pcm16[i] = Math.max(-1, Math.min(1, samples[i])) * 0x7fff;
+      }
+
+      return pcm16.buffer;
+    } catch (error) {
+      console.error('Error converting to PCM16:', error);
+      return null;
     }
-
-    return pcm16.buffer;
   };
 
   return { startCapture, stopCapture, micStream, systemStream, combinedStream };
