@@ -48,7 +48,7 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       // }
 
       // Abre WebSocket con tu backend
-      socketRef.current = new WebSocket("wss://TU_DOMINIO/ws/audio"); 
+      socketRef.current = new WebSocket("wss://cleverthera-e0e22ef57185.herokuapp.com/ws/audio"); 
       socketRef.current.onopen = () => {
         console.log("Conexión WebSocket establecida con el backend");
       };
