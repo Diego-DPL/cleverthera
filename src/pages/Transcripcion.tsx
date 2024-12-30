@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+// src/pages/TranscriptionPage.tsx
+import React, { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Mic, StopCircle } from "lucide-react";
 
-import useAudioCapture from "../hooks/useAudioCapture";
-import useAuth from "../hooks/useAuth";  
+import useAuth from "../hooks/useAuth"; // si lo necesitas, si no, quítalo
+import useRealtimeCapture from "../hooks/useAudioCapture";
 import AudioVisualizer from "../components/AudioVisualizer";
 import TranscriptionPanel from "../components/TranscriptionPanel";
 
@@ -16,15 +17,10 @@ interface Transcription {
 }
 
 export default function TranscriptionPage() {
-  const user = useAuth(); // si lo necesitas, si no quítalo
+  const user = useAuth();  // Ajusta si no usas un hook de auth
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
-
-  // Dispositivo de micrófono seleccionado
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-
   const [isRecording, setIsRecording] = useState(false);
-
-  // Listado de micrófonos
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
 
   const {
@@ -33,12 +29,12 @@ export default function TranscriptionPage() {
     micStream,
     systemStream,
     combinedStream,
-  } = useAudioCapture({
+  } = useRealtimeCapture({
     setTranscriptions,
     selectedDeviceId,
   });
 
-  // Al montar, enumerar micrófonos
+  // Al montar, enumeramos micrófonos
   useEffect(() => {
     navigator.mediaDevices.enumerateDevices()
       .then((devices) => {
@@ -54,7 +50,7 @@ export default function TranscriptionPage() {
     if (isRecording) {
       stopCapture();
     } else {
-      await startCapture(); 
+      await startCapture();
     }
     setIsRecording(!isRecording);
   };
@@ -64,11 +60,12 @@ export default function TranscriptionPage() {
   }
 
   return (
-    <div className="flex flex-col w-screen min-h-screen p-4 space-y-4">
+    <div className="flex flex-col w-screen min-h-screen p-4 space-y-4 bg-background text-foreground">
       <h1 className="text-3xl font-bold text-center mb-8">
-        Transcripción en tiempo real (ChatGPT Realtime + WebRTC)
+        Transcripción Realtime (Mic + Sistema) 
       </h1>
 
+      {/* Configuración de Audio */}
       <Card>
         <CardHeader>
           <CardTitle>Configuración de Audio</CardTitle>
@@ -105,11 +102,12 @@ export default function TranscriptionPage() {
         </CardContent>
       </Card>
 
+      {/* Visualizadores de audio (opcional) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {micStream && (
           <Card>
             <CardHeader>
-              <CardTitle>Micrófono</CardTitle>
+              <CardTitle>Audio Micrófono</CardTitle>
             </CardHeader>
             <CardContent>
               <AudioVisualizer stream={micStream} />
@@ -119,7 +117,7 @@ export default function TranscriptionPage() {
         {systemStream && (
           <Card>
             <CardHeader>
-              <CardTitle>Audio del Sistema/Pestaña</CardTitle>
+              <CardTitle>Audio Sistema</CardTitle>
             </CardHeader>
             <CardContent>
               <AudioVisualizer stream={systemStream} />
@@ -138,9 +136,10 @@ export default function TranscriptionPage() {
         )}
       </div>
 
+      {/* Panel de Transcripciones */}
       <Card>
         <CardHeader>
-          <CardTitle>Transcripción</CardTitle>
+          <CardTitle>Transcripciones</CardTitle>
         </CardHeader>
         <CardContent className="h-96 overflow-y-auto">
           <TranscriptionPanel transcriptions={transcriptions} />

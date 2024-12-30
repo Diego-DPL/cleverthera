@@ -1,43 +1,44 @@
 import { useRef, useState } from "react";
 
-// Tipo de transcripción (adaptado a lo que muestras en tu TranscriptionPanel)
 interface Transcription {
   speaker?: string;
   text: string;
   timestamp: number;
 }
 
-interface UseAudioCaptureProps {
+interface UseRealtimeCaptureProps {
   setTranscriptions: React.Dispatch<React.SetStateAction<Transcription[]>>;
   selectedDeviceId: string | null;
 }
 
-const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptureProps) => {
-  // Referencias a RTCPeerConnection y DataChannel
+const useRealtimeCapture = ({ setTranscriptions, selectedDeviceId }: UseRealtimeCaptureProps) => {
+  // PeerConnection y DataChannel
   const pcRef = useRef<RTCPeerConnection | null>(null);
-  const dataChannelRef = useRef<RTCDataChannel | null>(null);
+  const dcRef = useRef<RTCDataChannel | null>(null);
 
   // Streams locales
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const [systemStream, setSystemStream] = useState<MediaStream | null>(null);
   const [combinedStream, setCombinedStream] = useState<MediaStream | null>(null);
 
-  // Iniciar la captura y la conexión con Realtime (WebRTC)
+  // Inicia todo
   const startCapture = async () => {
     try {
-      // 1) Pedir ephemeral key a tu backend python
-      const resp = await fetch("https://cleverthera-e0e22ef57185.herokuapp.com/session"); 
-      // O "http://localhost:8000/session" si local
+      // 1) Pedir ephemeral key a tu backend (Python en Heroku o donde sea)
+      const resp = await fetch("https://TU_BACKEND_DOMAIN/session"); 
+      // Ej: "https://my-cleverthera-backend.herokuapp.com/session"
       if (!resp.ok) throw new Error("Error al obtener ephemeral key");
       const data = await resp.json();
-      const ephemeralKey = data.client_secret.value;
-      if (!ephemeralKey) throw new Error("No se recibió client_secret.value");
+      const ephemeralKey = data?.client_secret?.value;
+      if (!ephemeralKey) {
+        throw new Error("No se recibió client_secret.value en /session");
+      }
 
-      // 2) Crear RTCPeerConnection
+      // 2) Crear PeerConnection
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
-      // 3) Capturar micrófono (con selectedDeviceId si se eligió)
+      // 3) Capturar micrófono
       const audioConstraints: MediaStreamConstraints = {
         audio: selectedDeviceId ? { deviceId: selectedDeviceId } : true,
         video: false,
@@ -45,74 +46,109 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       const micStreamLocal = await navigator.mediaDevices.getUserMedia(audioConstraints);
       setMicStream(micStreamLocal);
 
-      // 4) Capturar audio del sistema/pestaña
+      // 4) Capturar audio del sistema/pantalla
       const systemStreamLocal = await navigator.mediaDevices.getDisplayMedia({
         audio: true,
-        video: true, // Chrome suele exigir video:true para permitir audio
+        video: true, // Chrome exige video:true para permitir audio
       });
       setSystemStream(systemStreamLocal);
 
-      // 5) Agregar tracks al PeerConnection:
-      //    - mic
+      // 5) Añadir tracks al PeerConnection
       micStreamLocal.getTracks().forEach((track) => {
         pc.addTrack(track, micStreamLocal);
       });
-      //    - system
       systemStreamLocal.getTracks().forEach((track) => {
         pc.addTrack(track, systemStreamLocal);
       });
 
-      // 6) Crear DataChannel para recibir y enviar eventos
+      // 6) Crear DataChannel para mandar/recibir eventos
       const dc = pc.createDataChannel("oai-events");
-      dataChannelRef.current = dc;
+      dcRef.current = dc;
 
+      // Al abrir el dataChannel, podemos mandar un "session.update" adicional, si queremos
+      // (No es estrictamente necesario si /session ya configuró todo,
+      //  pero aquí mostramos cómo forzar la transcripción).
       dc.onopen = () => {
-        console.log("DataChannel (oai-events) abierto.");
+        console.log("DataChannel (oai-events) abierto, configurando session...");
+        const sessionUpdate = {
+          type: "session.update",
+          session: {
+            // Aseguramos que se transcriba el audio
+            modalities: ["audio", "text"],
+            input_audio_format: "pcm16",
+            input_audio_transcription: { model: "whisper-1" },
+            turn_detection: {
+              type: "server_vad",
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500,
+              create_response: false
+            },
+            temperature: 0.0,
+            max_response_output_tokens: "inf",
+          },
+        };
+        dc.send(JSON.stringify(sessionUpdate));
       };
 
-      dc.onmessage = (e) => {
-        // Mensajes del Realtime (JSON)
+      // Mensajes de la API Realtime
+      dc.onmessage = (event) => {
         try {
-          const msg = JSON.parse(e.data);
+          const msg = JSON.parse(event.data);
           console.log("Evento Realtime:", msg);
-          // Si vienen “transcripts” o contenido textual, lo agregas a tu panel
-          // Ejemplo: msg.type === "conversation.item.created", etc.
-          // Asumiendo algo:
-          if (msg.text) {
-            setTranscriptions((prev) => {
-              const newT = [
-                ...prev,
-                {
-                  speaker: msg.speaker || "Modelo",
-                  text: msg.text,
-                  timestamp: msg.timestamp || Date.now(),
-                },
-              ];
-              newT.sort((a, b) => a.timestamp - b.timestamp);
-              return newT;
-            });
+
+          // Cuando la VAD detecta fin de habla, crea un "conversation.item.created"
+          // que contiene "content[].transcript".
+          if (msg.type === "conversation.item.created") {
+            const item = msg.item;
+            if (item?.type === "message" && item?.content) {
+              // Normalmente item.content[0].transcript
+              const contentPart = item.content[0];
+              if (contentPart?.transcript) {
+                const transcriptText = contentPart.transcript.trim();
+                setTranscriptions((prev) => {
+                  const newT = [
+                    ...prev,
+                    {
+                      speaker: "Audio mezclado",
+                      text: transcriptText,
+                      timestamp: Date.now(),
+                    },
+                  ];
+                  newT.sort((a, b) => a.timestamp - b.timestamp);
+                  return newT;
+                });
+              }
+            }
           }
+
+          // Podrías capturar más eventos, p.e. "input_audio_buffer.speech_started",
+          // "response.audio_transcript.delta", etc.
         } catch (err) {
-          console.error("No se pudo parsear el mensaje Realtime:", e.data);
+          console.error("No se pudo parsear evento Realtime:", event.data);
         }
       };
 
-      // 7) Por si el Realtime envía audio TTS, podemos reproducirlo
-      pc.ontrack = (event) => {
-        // event.streams[0] es la pista de audio TTS del modelo
-        console.log("ontrack remoto - modelo TTS");
+      dc.onerror = (err) => {
+        console.error("DataChannel error:", err);
+      };
+
+      // 7) PeerConnection: en caso de audio TTS remoto (si "create_response": true)
+      pc.ontrack = (e) => {
+        console.log("Remoto track TTS (si el modelo habla).");
+        // Si quisieras reproducirlo:
         const remoteAudio = new Audio();
-        remoteAudio.srcObject = event.streams[0];
+        remoteAudio.srcObject = e.streams[0];
         remoteAudio.autoplay = true;
       };
 
-      // 8) Creamos oferta SDP
+      // 8) Crear offer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // 9) Enviar esa oferta a la Realtime API con la ephemeral key
+      // 9) Mandar la oferta a la API Realtime
       const baseUrl = "https://api.openai.com/v1/realtime";
-      const model = "gpt-4o-realtime-preview-2024-12-17"; // Ajusta a tu modelo
+      const model = "gpt-4o-realtime-preview-2024-12-17"; // Ajusta si difiere
       const sdpResp = await fetch(`${baseUrl}?model=${model}`, {
         method: "POST",
         headers: {
@@ -122,38 +158,36 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
         body: offer.sdp,
       });
       if (!sdpResp.ok) {
-        throw new Error("Error al obtener SDP answer de Realtime: " + (await sdpResp.text()));
+        throw new Error("Error en SDP answer: " + (await sdpResp.text()));
       }
       const answerSDP = await sdpResp.text();
-      const answerDesc: RTCSessionDescriptionInit = {
+      const remoteDesc: RTCSessionDescriptionInit = {
         type: "answer",
         sdp: answerSDP,
       };
-      await pc.setRemoteDescription(answerDesc);
+      await pc.setRemoteDescription(remoteDesc);
       console.log("Conexión WebRTC establecida con Realtime.");
 
-      // Guardamos un “combined” informativo (mic + sys),
-      // pero en realidad la mezcla la gestiona Realtime.
-      // Si quieres un simple visualizador, crea un AudioContext local.
+      // 10) (Opcional) Crear un stream "combinado" local para tu AudioVisualizer
       const audioContext = new AudioContext();
       const micSource = audioContext.createMediaStreamSource(micStreamLocal);
       const sysSource = audioContext.createMediaStreamSource(systemStreamLocal);
       const destination = audioContext.createMediaStreamDestination();
       micSource.connect(destination);
       sysSource.connect(destination);
-
       setCombinedStream(destination.stream);
+
     } catch (error) {
       console.error("Error en startCapture:", error);
       alert("Error iniciando Realtime: " + (error as Error).message);
     }
   };
 
-  // Detener la conexión
+  // Detener y limpiar
   const stopCapture = () => {
-    if (dataChannelRef.current) {
-      dataChannelRef.current.close();
-      dataChannelRef.current = null;
+    if (dcRef.current) {
+      dcRef.current.close();
+      dcRef.current = null;
     }
     if (pcRef.current) {
       pcRef.current.close();
@@ -180,4 +214,4 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
   };
 };
 
-export default useAudioCapture;
+export default useRealtimeCapture;

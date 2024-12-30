@@ -1,3 +1,4 @@
+// src/components/TranscriptionPanel.tsx
 import React from "react";
 
 interface Transcription {
