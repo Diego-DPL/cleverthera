@@ -1,53 +1,63 @@
-import React, { useState } from 'react'
-import { Button } from "../components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
-import { Mic, StopCircle } from 'lucide-react'
-import useAudioCapture from '../hooks/useAudioCapture'
-import useAuth from '../hooks/useAuth'
-import AudioVisualizer from '../components/AudioVisualizer';
+import React, { useState, useEffect } from "react";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Mic, StopCircle } from "lucide-react";
+
+import useAudioCapture from "../hooks/useAudioCapture";
+import useAuth from "../hooks/useAuth";  // Ajusta si usas tu propia auth
+import AudioVisualizer from "../components/AudioVisualizer"; // Opcional
+import TranscriptionPanel from "../components/TranscriptionPanel";
 
 interface Transcription {
-  speaker?: string
-  text: string
-  timestamp: number
+  speaker?: string;
+  text: string;
+  timestamp: number;
 }
 
-export default function TranscripcionPage() {
-  const user = useAuth()
-  const [transcriptions, setTranscriptions] = useState<Transcription[]>([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
-  const [isRecording, setIsRecording] = useState(false)
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
+export default function TranscriptionPage() {
+  const user = useAuth();  // Ajusta o elimina si no usas este hook
+  const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
 
-  const { startCapture, stopCapture, micStream, systemStream, combinedStream } = useAudioCapture({
+  const {
+    startCapture,
+    stopCapture,
+    micStream,
+    combinedStream
+  } = useAudioCapture({
     setTranscriptions,
     selectedDeviceId,
-  })
+  });
 
-  React.useEffect(() => {
-    navigator.mediaDevices.enumerateDevices().then(devices => {
-      setAudioDevices(devices.filter(device => device.kind === 'audioinput'))
-    })
-  }, [])
+  useEffect(() => {
+    navigator.mediaDevices
+      .enumerateDevices()
+      .then((devices) => {
+        setAudioDevices(devices.filter((device) => device.kind === "audioinput"));
+      })
+      .catch((err) => console.error("Error al enumerar dispositivos:", err));
+  }, []);
 
   const handleStartStop = () => {
     if (isRecording) {
-      stopCapture()
+      stopCapture();
     } else {
-      startCapture()
+      startCapture();
     }
-    setIsRecording(!isRecording)
-  }
+    setIsRecording(!isRecording);
+  };
 
   if (user === null) {
-    return <div className="flex items-center justify-center h-screen">Cargando...</div>
+    return <div className="flex items-center justify-center h-screen">Cargando...</div>;
   }
 
   return (
     <div className="flex flex-col w-screen min-h-screen p-4 space-y-4 bg-background text-foreground">
       <h1 className="text-3xl font-bold text-center mb-8">Transcripción de Pacientes</h1>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Configuración de Audio</CardTitle>
@@ -66,8 +76,8 @@ export default function TranscripcionPage() {
             </SelectContent>
           </Select>
 
-          <Button 
-            onClick={handleStartStop} 
+          <Button
+            onClick={handleStartStop}
             className="w-full"
             variant={isRecording ? "destructive" : "default"}
           >
@@ -95,16 +105,6 @@ export default function TranscripcionPage() {
             </CardContent>
           </Card>
         )}
-        {systemStream && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Audio del Sistema</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AudioVisualizer stream={systemStream} />
-            </CardContent>
-          </Card>
-        )}
         {combinedStream && (
           <Card>
             <CardHeader>
@@ -122,13 +122,9 @@ export default function TranscripcionPage() {
           <CardTitle>Transcripción</CardTitle>
         </CardHeader>
         <CardContent className="h-96 overflow-y-auto">
-          {transcriptions.map((transcription, index) => (
-            <div key={index} className="mb-2">
-              <strong>{transcription.speaker}:</strong> {transcription.text}
-            </div>
-          ))}
+          <TranscriptionPanel transcriptions={transcriptions} />
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
