@@ -68,11 +68,14 @@ export default function TranscriptionPage() {
               <SelectValue placeholder="Seleccionar dispositivo de entrada" />
             </SelectTrigger>
             <SelectContent>
-              {audioDevices.map((device) => (
-                <SelectItem key={device.deviceId} value={device.deviceId}>
+            {audioDevices
+              .filter((device) => device.deviceId && device.deviceId.trim() !== "")
+              .map((device, index) => (
+                <SelectItem key={index} value={device.deviceId}>
                   {device.label || `Micrófono ${device.deviceId.slice(0, 5)}`}
                 </SelectItem>
-              ))}
+              ))
+            }
             </SelectContent>
           </Select>
 
