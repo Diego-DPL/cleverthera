@@ -16,53 +16,45 @@ interface Transcription {
 }
 
 export default function TranscriptionPage() {
-  const user = useAuth(); // Ajusta o elimina si no usas este hook de autenticación
+  const user = useAuth(); // si lo necesitas, si no quítalo
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
 
-  // Dispositivo de micrófono seleccionado (opcional si quieres elegir micro en el dropdown)
+  // Dispositivo de micrófono seleccionado
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
 
-  // Controla si estamos grabando / transcribiendo
   const [isRecording, setIsRecording] = useState(false);
 
-  // Lista de micrófonos disponibles
+  // Listado de micrófonos
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
 
-  // Streams para visualización (opcional) 
-  const { 
+  const {
     startCapture,
     stopCapture,
-    micStream, 
+    micStream,
     systemStream,
-    combinedStream
+    combinedStream,
   } = useAudioCapture({
     setTranscriptions,
     selectedDeviceId,
   });
 
-  // Al montar el componente, enumeramos micrófonos (para el <Select>)
+  // Al montar, enumerar micrófonos
   useEffect(() => {
-    navigator.mediaDevices
-      .enumerateDevices()
+    navigator.mediaDevices.enumerateDevices()
       .then((devices) => {
         const audioInputs = devices.filter(
-          (device) => device.kind === "audioinput" && device.deviceId.trim() !== ""
+          (d) => d.kind === "audioinput" && d.deviceId.trim() !== ""
         );
         setAudioDevices(audioInputs);
       })
-      .catch((err) => console.error("Error al enumerar dispositivos:", err));
+      .catch((err) => console.error("Error enumerando dispositivos:", err));
   }, []);
 
-  // Al pulsar el botón de Iniciar/Detener
   const handleStartStop = async () => {
     if (isRecording) {
       stopCapture();
     } else {
-      // Comenzar la captura: 
-      // 1) pedir micrófono
-      // 2) pedir system audio
-      // 3) combinar y enviar a ChatGPT Realtime
-      await startCapture();
+      await startCapture(); 
     }
     setIsRecording(!isRecording);
   };
@@ -72,16 +64,16 @@ export default function TranscriptionPage() {
   }
 
   return (
-    <div className="flex flex-col w-screen min-h-screen p-4 space-y-4 bg-background text-foreground">
-      <h1 className="text-3xl font-bold text-center mb-8">Transcripción de Sesión (Audio Mic + Sistema)</h1>
+    <div className="flex flex-col w-screen min-h-screen p-4 space-y-4">
+      <h1 className="text-3xl font-bold text-center mb-8">
+        Transcripción en tiempo real (ChatGPT Realtime + WebRTC)
+      </h1>
 
-      {/* Configuración de Audio */}
       <Card>
         <CardHeader>
           <CardTitle>Configuración de Audio</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Dropdown con micrófonos disponibles */}
           <Select onValueChange={(value) => setSelectedDeviceId(value)}>
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar micrófono" />
@@ -95,7 +87,6 @@ export default function TranscriptionPage() {
             </SelectContent>
           </Select>
 
-          {/* Botón de iniciar/detener */}
           <Button
             onClick={handleStartStop}
             className="w-full"
@@ -103,23 +94,22 @@ export default function TranscriptionPage() {
           >
             {isRecording ? (
               <>
-                <StopCircle className="mr-2 h-4 w-4" /> Detener Transcripción
+                <StopCircle className="mr-2 h-4 w-4" /> Detener
               </>
             ) : (
               <>
-                <Mic className="mr-2 h-4 w-4" /> Iniciar Transcripción
+                <Mic className="mr-2 h-4 w-4" /> Iniciar
               </>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Visualizadores (opcional) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {micStream && (
           <Card>
             <CardHeader>
-              <CardTitle>Audio del Micrófono (Psicólogo)</CardTitle>
+              <CardTitle>Micrófono</CardTitle>
             </CardHeader>
             <CardContent>
               <AudioVisualizer stream={micStream} />
@@ -129,7 +119,7 @@ export default function TranscriptionPage() {
         {systemStream && (
           <Card>
             <CardHeader>
-              <CardTitle>Audio del Sistema (Paciente)</CardTitle>
+              <CardTitle>Audio del Sistema/Pestaña</CardTitle>
             </CardHeader>
             <CardContent>
               <AudioVisualizer stream={systemStream} />
@@ -148,7 +138,6 @@ export default function TranscriptionPage() {
         )}
       </div>
 
-      {/* Transcripciones */}
       <Card>
         <CardHeader>
           <CardTitle>Transcripción</CardTitle>
