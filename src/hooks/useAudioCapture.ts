@@ -26,7 +26,7 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
   const startCapture = async () => {
     try {
       // 1) Pedir ephemeral key a tu backend python
-      const resp = await fetch("https://TU_BACKEND_URL/session"); 
+      const resp = await fetch("https://cleverthera-e0e22ef57185.herokuapp.com/session"); 
       // O "http://localhost:8000/session" si local
       if (!resp.ok) throw new Error("Error al obtener ephemeral key");
       const data = await resp.json();
