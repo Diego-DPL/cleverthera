@@ -26,19 +26,31 @@ export default function TranscriptionPage() {
     startCapture,
     stopCapture,
     micStream,
-    combinedStream
+    combinedStream,
   } = useAudioCapture({
     setTranscriptions,
     selectedDeviceId,
   });
 
   useEffect(() => {
-    navigator.mediaDevices
-      .enumerateDevices()
-      .then((devices) => {
-        setAudioDevices(devices.filter((device) => device.kind === "audioinput"));
-      })
-      .catch((err) => console.error("Error al enumerar dispositivos:", err));
+    // Solicitamos permiso al micrófono antes de enumerar dispositivos,
+    // para que aparezcan con su label y no tengan deviceId vacío en Chrome.
+    async function fetchDevices() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        // Filtramos para quedarnos solo con los dispositivos de entrada de audio
+        // y descartamos los que tengan deviceId vacío.
+        const audioInputDevices = devices.filter(
+          (device) => device.kind === "audioinput" && device.deviceId.trim() !== ""
+        );
+        setAudioDevices(audioInputDevices);
+      } catch (error) {
+        console.error("Error al solicitar permiso o enumerar dispositivos:", error);
+      }
+    }
+
+    fetchDevices();
   }, []);
 
   const handleStartStop = () => {
@@ -50,6 +62,7 @@ export default function TranscriptionPage() {
     setIsRecording(!isRecording);
   };
 
+  // Si tienes algún check de usuario autenticado
   if (user === null) {
     return <div className="flex items-center justify-center h-screen">Cargando...</div>;
   }
@@ -58,6 +71,7 @@ export default function TranscriptionPage() {
     <div className="flex flex-col w-screen min-h-screen p-4 space-y-4 bg-background text-foreground">
       <h1 className="text-3xl font-bold text-center mb-8">Transcripción de Pacientes</h1>
 
+      {/* Configuración de Audio */}
       <Card>
         <CardHeader>
           <CardTitle>Configuración de Audio</CardTitle>
@@ -68,14 +82,11 @@ export default function TranscriptionPage() {
               <SelectValue placeholder="Seleccionar dispositivo de entrada" />
             </SelectTrigger>
             <SelectContent>
-            {audioDevices
-              .filter((device) => device.deviceId && device.deviceId.trim() !== "")
-              .map((device, index) => (
+              {audioDevices.map((device, index) => (
                 <SelectItem key={index} value={device.deviceId}>
                   {device.label || `Micrófono ${device.deviceId.slice(0, 5)}`}
                 </SelectItem>
-              ))
-            }
+              ))}
             </SelectContent>
           </Select>
 
@@ -97,6 +108,7 @@ export default function TranscriptionPage() {
         </CardContent>
       </Card>
 
+      {/* Visualizadores de audio (opcionales) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {micStream && (
           <Card>
@@ -120,6 +132,7 @@ export default function TranscriptionPage() {
         )}
       </div>
 
+      {/* Panel de Transcripción */}
       <Card>
         <CardHeader>
           <CardTitle>Transcripción</CardTitle>
