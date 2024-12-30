@@ -25,7 +25,7 @@ const useRealtimeCapture = ({ setTranscriptions, selectedDeviceId }: UseRealtime
   const startCapture = async () => {
     try {
       // 1) Pedir ephemeral key a tu backend (Python en Heroku o donde sea)
-      const resp = await fetch("https://TU_BACKEND_DOMAIN/session"); 
+      const resp = await fetch("https://cleverthera-e0e22ef57185.herokuapp.com/session"); 
       // Ej: "https://my-cleverthera-backend.herokuapp.com/session"
       if (!resp.ok) throw new Error("Error al obtener ephemeral key");
       const data = await resp.json();
