@@ -6,39 +6,26 @@ interface Transcription {
   timestamp: number;
 }
 
-interface UseRealtimeCaptureProps {
+interface UseAudioCaptureProps {
   setTranscriptions: React.Dispatch<React.SetStateAction<Transcription[]>>;
   selectedDeviceId: string | null;
 }
 
-const useRealtimeCapture = ({ setTranscriptions, selectedDeviceId }: UseRealtimeCaptureProps) => {
-  // PeerConnection y DataChannel
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const dcRef = useRef<RTCDataChannel | null>(null);
+const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptureProps) => {
+  // Referencias para el MediaRecorder y el WebSocket
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
 
-  // Streams locales
+  // States para cada stream
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   const [systemStream, setSystemStream] = useState<MediaStream | null>(null);
   const [combinedStream, setCombinedStream] = useState<MediaStream | null>(null);
 
-  // Inicia todo
+  // Función para iniciar la captura
   const startCapture = async () => {
     try {
-      // 1) Pedir ephemeral key a tu backend (Python en Heroku o donde sea)
-      const resp = await fetch("https://cleverthera-e0e22ef57185.herokuapp.com/session"); 
-      // Ej: "https://my-cleverthera-backend.herokuapp.com/session"
-      if (!resp.ok) throw new Error("Error al obtener ephemeral key");
-      const data = await resp.json();
-      const ephemeralKey = data?.client_secret?.value;
-      if (!ephemeralKey) {
-        throw new Error("No se recibió client_secret.value en /session");
-      }
-
-      // 2) Crear PeerConnection
-      const pc = new RTCPeerConnection();
-      pcRef.current = pc;
-
-      // 3) Capturar micrófono
+      // 1) Capturar MICRÓFONO
+      //    Usamos selectedDeviceId si el usuario escogió un mic específico.
       const audioConstraints: MediaStreamConstraints = {
         audio: selectedDeviceId ? { deviceId: selectedDeviceId } : true,
         video: false,
@@ -46,163 +33,108 @@ const useRealtimeCapture = ({ setTranscriptions, selectedDeviceId }: UseRealtime
       const micStreamLocal = await navigator.mediaDevices.getUserMedia(audioConstraints);
       setMicStream(micStreamLocal);
 
-      // 4) Capturar audio del sistema/pantalla
+      // 2) Capturar AUDIO DEL SISTEMA/PANTALLA
+      //    getDisplayMedia con audio. Chrome te pedirá "Compartir pestaña" o "Pantalla"
+      //    Asegúrate de que el usuario seleccione la casilla "compartir audio"
       const systemStreamLocal = await navigator.mediaDevices.getDisplayMedia({
-        audio: true,
-        video: true, // Chrome exige video:true para permitir audio
+        audio: true, // para que incluya el audio del sistema
+        video: true, // a veces Chrome exige video=true para permitir audio
       });
       setSystemStream(systemStreamLocal);
 
-      // 5) Añadir tracks al PeerConnection
-      micStreamLocal.getTracks().forEach((track) => {
-        pc.addTrack(track, micStreamLocal);
-      });
-      systemStreamLocal.getTracks().forEach((track) => {
-        pc.addTrack(track, systemStreamLocal);
-      });
+      // 3) Combinamos ambos streams en un AudioContext
+      //    para tener un único "combinedStream".
+      const audioContext = new AudioContext();
 
-      // 6) Crear DataChannel para mandar/recibir eventos
-      const dc = pc.createDataChannel("oai-events");
-      dcRef.current = dc;
+      const micSource = audioContext.createMediaStreamSource(micStreamLocal);
+      const systemSource = audioContext.createMediaStreamSource(systemStreamLocal);
 
-      // Al abrir el dataChannel, podemos mandar un "session.update" adicional, si queremos
-      // (No es estrictamente necesario si /session ya configuró todo,
-      //  pero aquí mostramos cómo forzar la transcripción).
-      dc.onopen = () => {
-        console.log("DataChannel (oai-events) abierto, configurando session...");
-        const sessionUpdate = {
-          type: "session.update",
-          session: {
-            // Aseguramos que se transcriba el audio
-            modalities: ["audio", "text"],
-            input_audio_format: "pcm16",
-            input_audio_transcription: { model: "whisper-1" },
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 500,
-              create_response: false
-            },
-            temperature: 0.0,
-            max_response_output_tokens: "inf",
-          },
-        };
-        dc.send(JSON.stringify(sessionUpdate));
+      const destination = audioContext.createMediaStreamDestination();
+
+      // Conectar micrófono
+      micSource.connect(destination);
+      // Conectar audio del sistema
+      systemSource.connect(destination);
+
+      const combinedStreamLocal = destination.stream;
+      setCombinedStream(combinedStreamLocal);
+
+      // 4) Abrir WebSocket al backend (FastAPI + ChatGPT Realtime)
+      socketRef.current = new WebSocket("wss://cleverthera-e0e22ef57185.herokuapp.com/ws/audio"); 
+      socketRef.current.onopen = () => {
+        console.log("Conexión WebSocket establecida con el backend");
+      };
+      socketRef.current.onmessage = (event) => {
+        // Mensajes de transcripción recibidos
+        try {
+          const data = JSON.parse(event.data);
+          const { speaker, text, timestamp } = data;
+          setTranscriptions((prev) => {
+            const newTranscriptions = [...prev, { speaker, text, timestamp }];
+            newTranscriptions.sort((a, b) => a.timestamp - b.timestamp);
+            return newTranscriptions;
+          });
+        } catch (err) {
+          console.error("Error parseando mensaje de WebSocket:", err);
+        }
+      };
+      socketRef.current.onerror = (error) => {
+        console.error("Error en el WebSocket:", error);
+      };
+      socketRef.current.onclose = (event) => {
+        console.log("Conexión WebSocket cerrada:", event);
       };
 
-      // Mensajes de la API Realtime
-      dc.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          console.log("Evento Realtime:", msg);
+      // 5) Iniciar MediaRecorder con el stream combinado
+      mediaRecorderRef.current = new MediaRecorder(combinedStreamLocal, {
+        mimeType: "audio/webm; codecs=opus",
+      });
 
-          // Cuando la VAD detecta fin de habla, crea un "conversation.item.created"
-          // que contiene "content[].transcript".
-          if (msg.type === "conversation.item.created") {
-            const item = msg.item;
-            if (item?.type === "message" && item?.content) {
-              // Normalmente item.content[0].transcript
-              const contentPart = item.content[0];
-              if (contentPart?.transcript) {
-                const transcriptText = contentPart.transcript.trim();
-                setTranscriptions((prev) => {
-                  const newT = [
-                    ...prev,
-                    {
-                      speaker: "Audio mezclado",
-                      text: transcriptText,
-                      timestamp: Date.now(),
-                    },
-                  ];
-                  newT.sort((a, b) => a.timestamp - b.timestamp);
-                  return newT;
-                });
-              }
-            }
-          }
-
-          // Podrías capturar más eventos, p.e. "input_audio_buffer.speech_started",
-          // "response.audio_transcript.delta", etc.
-        } catch (err) {
-          console.error("No se pudo parsear evento Realtime:", event.data);
+      // Cada vez que haya un chunk de audio, lo enviamos por WS
+      mediaRecorderRef.current.ondataavailable = async (event) => {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          const arrayBuffer = await event.data.arrayBuffer();
+          socketRef.current.send(arrayBuffer);
         }
       };
 
-      dc.onerror = (err) => {
-        console.error("DataChannel error:", err);
-      };
-
-      // 7) PeerConnection: en caso de audio TTS remoto (si "create_response": true)
-      pc.ontrack = (e) => {
-        console.log("Remoto track TTS (si el modelo habla).");
-        // Si quisieras reproducirlo:
-        const remoteAudio = new Audio();
-        remoteAudio.srcObject = e.streams[0];
-        remoteAudio.autoplay = true;
-      };
-
-      // 8) Crear offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // 9) Mandar la oferta a la API Realtime
-      const baseUrl = "https://api.openai.com/v1/realtime";
-      const model = "gpt-4o-realtime-preview-2024-12-17"; // Ajusta si difiere
-      const sdpResp = await fetch(`${baseUrl}?model=${model}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${ephemeralKey}`,
-          "Content-Type": "application/sdp",
-        },
-        body: offer.sdp,
-      });
-      if (!sdpResp.ok) {
-        throw new Error("Error en SDP answer: " + (await sdpResp.text()));
-      }
-      const answerSDP = await sdpResp.text();
-      const remoteDesc: RTCSessionDescriptionInit = {
-        type: "answer",
-        sdp: answerSDP,
-      };
-      await pc.setRemoteDescription(remoteDesc);
-      console.log("Conexión WebRTC establecida con Realtime.");
-
-      // 10) (Opcional) Crear un stream "combinado" local para tu AudioVisualizer
-      const audioContext = new AudioContext();
-      const micSource = audioContext.createMediaStreamSource(micStreamLocal);
-      const sysSource = audioContext.createMediaStreamSource(systemStreamLocal);
-      const destination = audioContext.createMediaStreamDestination();
-      micSource.connect(destination);
-      sysSource.connect(destination);
-      setCombinedStream(destination.stream);
+      // Inicia la grabación, enviando chunks cada 1s
+      mediaRecorderRef.current.start(1000);
 
     } catch (error) {
-      console.error("Error en startCapture:", error);
-      alert("Error iniciando Realtime: " + (error as Error).message);
+      console.error("Error al capturar audio:", error);
+      alert(`Error al capturar audio: ${error}`);
     }
   };
 
-  // Detener y limpiar
+  // Función para detener la captura
   const stopCapture = () => {
-    if (dcRef.current) {
-      dcRef.current.close();
-      dcRef.current = null;
+    // 1) Detener la grabación
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
     }
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
+
+    // 2) Cerrar WebSocket
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
     }
+
+    // 3) Detener tracks de micrófono
     if (micStream) {
       micStream.getTracks().forEach((track) => track.stop());
       setMicStream(null);
     }
+
+    // 4) Detener tracks de sistema
     if (systemStream) {
       systemStream.getTracks().forEach((track) => track.stop());
       setSystemStream(null);
     }
+
+    // 5) Vaciar combinedStream
     setCombinedStream(null);
-    console.log("Conexión Realtime detenida.");
   };
 
   return {
@@ -214,4 +146,4 @@ const useRealtimeCapture = ({ setTranscriptions, selectedDeviceId }: UseRealtime
   };
 };
 
-export default useRealtimeCapture;
+export default useAudioCapture;
