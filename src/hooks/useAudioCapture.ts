@@ -60,7 +60,7 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       setCombinedStream(combinedStreamLocal);
 
       // 4) Abrir WebSocket al backend (FastAPI + ChatGPT Realtime)
-      socketRef.current = new WebSocket("wss://api.cleverthera.com:8000/ws/audio"); 
+      socketRef.current = new WebSocket("wss://api.cleverthera.com/ws/audio"); 
       socketRef.current.onopen = () => {
         console.log("Conexión WebSocket establecida con el backend");
       };
