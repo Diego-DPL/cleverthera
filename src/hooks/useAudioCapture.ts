@@ -87,7 +87,7 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
 
       // 5) Iniciar MediaRecorder con el stream combinado
       mediaRecorderRef.current = new MediaRecorder(combinedStreamLocal, {
-        mimeType: "audio/webm; codecs=opus",
+        mimeType: "audio/ogg; codecs=opus",
       });
 
       // Cada vez que haya un chunk de audio, lo enviamos por WS
