@@ -99,7 +99,7 @@ const useAudioCapture = ({ setTranscriptions, selectedDeviceId }: UseAudioCaptur
       };
 
       // Iniciar la grabación, enviando chunks cada 1s
-      mediaRecorderRef.current.start(1000);
+      mediaRecorderRef.current.start(3000);
 
     } catch (error) {
       console.error("Error al capturar audio:", error);
