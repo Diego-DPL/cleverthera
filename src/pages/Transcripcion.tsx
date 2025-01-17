@@ -17,7 +17,6 @@ export default function TranscriptionPage() {
   const {
     startCapture,
     stopCapture,
-    micStream,
     combinedStream,
   } = useRealtimeCapture({
     setTranscriptions: setTranscription, // Cambiado para manejar el texto final
