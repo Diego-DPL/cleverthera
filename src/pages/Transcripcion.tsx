@@ -27,7 +27,7 @@ export default function TranscriptionPage() {
     navigator.mediaDevices.enumerateDevices()
       .then((devices) => {
         const audioInputs = devices.filter(
-          (d) => d.kind === "audioinput" && d.deviceId.trim() !== ""
+          (device) => device.kind === "audioinput" && device.deviceId.trim() !== ""
         );
         setAudioDevices(audioInputs);
       })
